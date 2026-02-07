@@ -1,0 +1,60 @@
+{% extends "weather/index.html" %}
+
+{% block content %}
+<div class="weather-card" style="margin: 50px auto; max-width: 400px; animation: fadeIn 0.8s ease-out;">
+    
+    <h2 style="color: #1a1a1a; margin-bottom: 5px;">Welcome Back</h2>
+    <p style="color: #444; font-size: 0.9rem; margin-bottom: 25px;">Please login to save your favorite cities</p>
+    
+    <hr style="border: 0; border-top: 1px solid rgba(0,0,0,0.1); margin-bottom: 25px;">
+
+    <form method="post" style="text-align: left;">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+            <div style="background: rgba(217, 83, 79, 0.2); color: #d9534f; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-size: 0.85rem; border: 1px solid #d9534f;">
+                Your username and password didn't match. Please try again.
+            </div>
+        {% endif %}
+
+        <div class="auth-form-group">
+            {{ form.as_p }}
+        </div>
+
+        <style>
+            /* This styles the auto-generated Django form labels and inputs */
+            .auth-form-group p { margin-bottom: 15px; }
+            .auth-form-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+            .auth-form-group input { 
+                width: 100%; 
+                padding: 12px; 
+                border-radius: 15px; 
+                border: 1px solid rgba(0,0,0,0.1); 
+                background: rgba(255,255,255,0.5);
+                box-sizing: border-box; /* Prevents input from overflowing */
+            }
+            .auth-form-group input:focus {
+                outline: none;
+                border-color: #007bff;
+                background: white;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+
+        <button type="submit" class="btn-search" style="width: 100%; margin-top: 10px; padding: 15px;">
+            Sign In
+        </button>
+    </form>
+
+    <div style="margin-top: 25px; font-size: 0.9rem;">
+        <span style="color: #444;">Don't have an account?</span> 
+        <a href="{% url 'register' %}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">
+            Create one now
+        </a>
+    </div>
+
+</div>
+{% endblock %}

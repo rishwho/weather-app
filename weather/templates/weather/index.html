@@ -1,0 +1,224 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Pro</title>
+    
+    <link rel="icon" type="image/png" href="{% static 'weather/images/favicon.jpg' %}">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.25);
+            --glass-heavy: rgba(255, 255, 255, 0.45);
+        }
+
+        /* --- Global Styles & Step 2/3 Transitions --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: url("{% static 'weather/images/background.jpg' %}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            color: #1a1a1a;
+            padding-top: 60px; /* Space for fixed nav */
+            transition: background-image 0.8s ease-in-out;
+        }
+
+        /* --- Navigation Bar --- */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 60px;
+            background: var(--glass-heavy);
+            backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            box-sizing: border-box;
+        }
+
+        .nav-brand a { font-size: 1.5rem; font-weight: bold; text-decoration: none; color: #1a1a1a; }
+        .nav-links a, .logout-btn { 
+            margin-left: 20px; text-decoration: none; color: #1a1a1a; font-weight: 500; 
+            background: none; border: none; cursor: pointer; font-size: 0.95rem;
+        }
+        .nav-cta { background: #007bff !important; color: white !important; padding: 8px 18px; border-radius: 20px; }
+
+        /* --- Layout Containers --- */
+        .app-container { display: flex; flex-grow: 1; }
+
+        .sidebar {
+            width: 250px;
+            background: var(--glass-heavy);
+            backdrop-filter: blur(15px);
+            padding: 30px 20px;
+            border-right: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+
+        /* --- Step 3: Glassmorphism UI --- */
+        .weather-card {
+            background: var(--glass);
+            backdrop-filter: blur(15px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            padding: 30px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .weather-card:hover { transform: translateY(-5px); }
+
+        .chart-container {
+            margin: 20px 0; background: rgba(255,255,255,0.15); 
+            border-radius: 20px; padding: 15px; height: 180px;
+        }
+
+        /* --- Search & Grid Styles --- */
+        .search-area { width: 100%; max-width: 600px; text-align: center; margin-bottom: 40px; }
+        input[type="text"] { padding: 12px 20px; border-radius: 25px; border: 1px solid #ddd; width: 40%; outline: none; }
+        .btn-search { padding: 12px 30px; border-radius: 25px; border: none; background: #007bff; color: white; cursor: pointer; }
+        .comparison-container { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; width: 100%; }
+        .forecast-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 25px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px; }
+        .forecast-item { background: rgba(255,255,255,0.2); padding: 8px 2px; border-radius: 10px; font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div class="nav-brand"><a href="{% url 'index' %}">WeatherPro</a></div>
+        <div class="nav-links">
+            <a href="{% url 'index' %}">Home</a>
+            {% if user.is_authenticated %}
+                <span style="font-size: 0.9rem; margin-left: 15px;">Hi, {{ user.username }}</span>
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}<button type="submit" class="logout-btn">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}" class="nav-cta">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="app-container">
+        <div class="sidebar">
+            <h3 style="border-bottom: 1px solid #000; padding-bottom: 5px;">Recent Searches</h3>
+            {% for item in recent_searches %}
+                <div class="history-item" style="padding:10px; cursor:pointer;" onclick="searchAgain('{{ item.city_name }}')">
+                    {{ item.city_name }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="main-content">
+            {% block content %}
+            <div class="search-area">
+                <form method="POST" id="searchForm">
+                    {% csrf_token %}
+                    <input type="text" name="city" id="city1" placeholder="City 1..." required>
+                    <input type="text" name="city2" id="city2" placeholder="City 2 (Optional)">
+                    <button type="submit" class="btn-search">Compare</button>
+                </form>
+                <button type="button" onclick="askLocation()" style="background:none; border:none; color:#0056b3; cursor:pointer; margin-top:10px;">📍 Use My Location</button>
+            </div>
+
+            <div class="comparison-container">
+                {% for weather in weather_list %}
+                    <div class="weather-data-json" style="display:none;" 
+                         data-labels='{{ weather.hourly_labels|safe }}' 
+                         data-temps='{{ weather.hourly_temps|safe }}'
+                         data-description="{{ weather.description }}">
+                    </div>
+
+                    <div class="weather-card">
+                        <h2>{{ weather.city }}</h2>
+                        <div class="temp-display">{{ weather.temperature }}°C</div>
+                        <div class="details"><b>{{ weather.description }}</b> | Wind: {{ weather.windspeed }} km/h</div>
+                        <div class="aqi-tag">AQI: {{ weather.aqi_index }}</div>
+
+                        <div class="chart-container"><canvas id="chart-{{ forloop.counter }}"></canvas></div>
+
+                        <div class="forecast-grid">
+                            {% for day in weather.forecast %}
+                                <div class="forecast-item"><b>{{ day.day_name }}</b><br>{{ day.temp_max }}°</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p style="color: white; font-size: 1.2rem;">Compare cities or use your location!</p>
+                {% endfor %}
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const containers = document.querySelectorAll('.weather-data-json');
+            containers.forEach((container, index) => {
+                try {
+                    const rawLabels = container.getAttribute('data-labels').replace(/'/g, '"');
+                    const rawTemps = container.getAttribute('data-temps').replace(/'/g, '"');
+                    
+                    // Step 2: Dynamic Background
+                    if (index === 0) {
+                        const desc = container.getAttribute('data-description').toLowerCase();
+                        const body = document.body;
+                        if (desc.includes('rain')) body.style.backgroundImage = "url('/static/weather/images/rainy.jpg')";
+                        else if (desc.includes('cloud')) body.style.backgroundImage = "url('/static/weather/images/cloudy.jpg')";
+                        else if (desc.includes('clear')) body.style.backgroundImage = "url('/static/weather/images/sunny.jpg')";
+                    }
+
+                    // Step 1: Chart Initialization
+                    const canvas = document.getElementById(`chart-${index + 1}`);
+                    if (canvas) {
+                        new Chart(canvas.getContext('2d'), {
+                            type: 'line',
+                            data: {
+                                labels: JSON.parse(rawLabels),
+                                datasets: [{
+                                    label: 'Temp', data: JSON.parse(rawTemps),
+                                    borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.1)',
+                                    fill: true, tension: 0.4, pointRadius: 0
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
+                                       scales: { x: { display: false }, y: { ticks: { font: { size: 10 } } } } }
+                        });
+                    }
+                } catch (e) { console.error("Error:", e); }
+            });
+        });
+
+        function askLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    window.location.href = `/?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`;
+                });
+            }
+        }
+
+        function searchAgain(city) {
+            document.getElementById('city1').value = city;
+            document.getElementById('searchForm').submit();
+        }
+    </script>
+</body>
+</html>

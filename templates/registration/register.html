@@ -1,0 +1,15 @@
+{% extends "weather/index.html" %}
+
+{% block content %}
+<div class="weather-card" style="margin: auto;">
+    <h2>Create an Account</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-search">Register</button>
+    </form>
+    <p style="margin-top: 15px;">
+        Already have an account? <a href="{% url 'login' %}">Login here</a>
+    </p>
+</div>
+{% endblock %}
