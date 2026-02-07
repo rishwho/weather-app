@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-^9ypa4blzzapdmi-%z-fjx!zdh&-epai!*#!9u1&nr#@)lo*6h
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -131,3 +131,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Replace 'your-app' with your actual Render name
+CSRF_TRUSTED_ORIGINS = ['https://your-app.onrender.com']
