@@ -134,3 +134,5 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Replace 'your-app' with your actual Render name
 CSRF_TRUSTED_ORIGINS = ['https://your-app.onrender.com']
+# settings.py
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
