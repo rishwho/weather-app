@@ -106,3 +106,9 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
+
+def clear_history(request):
+    if request.user.is_authenticated:
+        # This deletes the records for the current user
+        SearchHistory.objects.filter(user=request.user).delete()
+    return redirect('index') # 'index' must match the name in your urls.py
